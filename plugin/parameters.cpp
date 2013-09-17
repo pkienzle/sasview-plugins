@@ -1,3 +1,4 @@
+#include <iostream>
 #include "parameters.hh"
 
 using namespace std;
@@ -43,13 +44,21 @@ Parameter::Parameter(double _value, bool disp) {
 }
 
 void Parameter::get_weights(vector<WeightPoint> &weights) {
+std::cout << "get weights" << std::endl;
+std::cout << "dispersion " << dispersion << std::endl;
+std::cout << "type " << dispersion->Type<< std::endl;
+std::cout << "length " << dispersion->Length << std::endl;
     weights.clear();
     weights.reserve(dispersion->Length);
     
     double* pValue  = dispersion->Values;
     double* pWeight = dispersion->Weights;
+std::cout << "get weights " << dispersion->Values << " " << dispersion->Weights << std::endl;
     for (int i = 0, n = dispersion->Length; i != n; i++)
+{
+std::cout << "get weights " << i << " " << pValue[0] << " " << pWeight[0] << std::endl;
         weights.push_back(WeightPoint(*pValue++, *pWeight++));
+}
 }
 void Parameter::set_min(double value) {
 	min = value;

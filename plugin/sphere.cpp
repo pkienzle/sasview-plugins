@@ -73,6 +73,7 @@ SphereModel :: SphereModel() {
  */
 double SphereModel :: operator()(double q) {
 	double dp[5];
+std::cout << "entering call" << std::endl;
 
 	// Fill parameter array for IGOR library
 	// Add the background after averaging
@@ -84,6 +85,7 @@ double SphereModel :: operator()(double q) {
 
 	// Get the dispersion points for the radius
 	vector<WeightPoint> weights_rad;
+std::cout << "entering call" << std::endl;
 	radius.get_weights(weights_rad);
 
 	// Perform the computation, with all weight points
@@ -91,8 +93,10 @@ double SphereModel :: operator()(double q) {
 	double norm = 0.0;
 	double vol = 0.0;
 
+std::cout << "entering call" << weights_rad.size() << std::endl;
 	// Loop over radius weight points
 	for(size_t i=0; i<weights_rad.size(); i++) {
+std::cout << "entering call" << i << " " << weights_rad[i].value << " " << weights_rad[i].weight << std::endl;
 		dp[1] = weights_rad[i].value;
 
 		//Un-normalize SphereForm by volume
@@ -108,6 +112,7 @@ double SphereModel :: operator()(double q) {
 	if (vol != 0.0 && norm != 0.0) {
 		//Re-normalize by avg volume
 		sum = sum/(vol/norm);}
+std::cout << "done" << std::endl;
 	return sum/norm + background();
 }
 

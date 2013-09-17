@@ -1,4 +1,5 @@
 # ====================================================
+import os
 import numpy
 from numpy import inf
 
@@ -26,7 +27,7 @@ class GaussianDispersion(object):
         
         For polydispersity use relative.  For orientation parameters use absolute.
         """
-        npts, width, nsigmas = self['npts'], self['width'], self['nsigmas']
+        npts, width, nsigmas = self.npts, self.width, self.nsigmas
 
         sigma = width*center if relative else width
             
@@ -97,11 +98,10 @@ class ParameterInfo(object):
         self.flags = flags
 
 class ModelInfo(object):
-    def __init__(self, name, description, parameters, category=None, version=API_VERSION):
+    def __init__(self, name, description, parameter_info, version=API_VERSION):
         self.name = name
         self.description = description
-        self.parameters = parameters
-        self.category = category
+        self.parameter_info = parameter_info
         self.version = version
 
 class PluginBase(BaseComponent):
@@ -109,12 +109,15 @@ class PluginBase(BaseComponent):
         """ Initialization"""
         BaseComponent.__init__(self)
         
-        pars = model_info.parameters
+        self.parameter_info  = model_info.parameter_info
 
         # ===== Variable state which needs to be copied/saved =====
-        self.params = dict((p.name, p.default) for p in pars)
-        self.details = dict((p.name, [p.units,None,None]) for p in pars)
-        self.dispersion = dict((p.name, GaussianDispersion().get_pars()) for p in pars
+        self.params = dict((p.name, p.default) 
+                           for p in self.parameter_info)
+        self.details = dict((p.name, [p.units,None,None]) 
+                            for p in self.parameter_info)
+        self.dispersion = dict((p.name, GaussianDispersion().get_pars()) 
+                               for p in self.parameter_info
                                 if p.flags&(PF_Polydisperse|PF_Orientation))
         #list of parameter that start out fixed by default
         self.fixed = []
@@ -124,14 +127,14 @@ class PluginBase(BaseComponent):
         ## Name of the model
         self.name = model_info.name
         self.description = model_info.description
-        self.category = model_info.category
+        self.category = "unknown"
         
-        self.non_fittable = [p.name for p in pars 
+        self.non_fittable = [p.name for p in self.parameter_info
                              if p.flags&(PF_Unfittable|PF_RepeatCount)]
-        self.orientation_params = [p.name for p in pars
+        self.orientation_params = [p.name for p in self.parameter_info
                                    if p.flags&PF_Orientation]
 
-        self.magnetic_params = [p.name for p in pars
+        self.magnetic_params = [p.name for p in self.parameter_info
                                 if p.flags&PF_Magnetic]
                                     
         ## independent parameter name and unit [string]
@@ -227,7 +230,7 @@ class PluginBase(BaseComponent):
             q,phi = x
             return self.calculate_Iq([q*math.cos(phi)], [q*math.sin(phi)])
         else:
-            return self.calculate_Iq([double(x)])
+            return self.calculate_Iq([float(x)])
     
     def runXY(self, x): 
         """
@@ -238,7 +241,7 @@ class PluginBase(BaseComponent):
         if isinstance(x, list) and len(x) == 2:
             return self.calculate_Iq(*x)
         else:
-            return self.calculate_Iq([double(x)])
+            return self.calculate_Iq([float(x)])
 
     def clone(self):
         """ Returns a new object identical to the current object """
@@ -274,7 +277,7 @@ CPlugin wraps a DLL which exports a SAS model API.
 import sys
 
 import ctypes
-from ctypes import cdll, c_void_p, c_double, c_size_t, c_char_p
+from ctypes import cdll, c_void_p, c_double, c_size_t, c_char_p, addressof, byref
 c_double_p = ctypes.POINTER(c_double)
 
 
@@ -289,10 +292,10 @@ class CParameterInfo(ctypes.Structure):
     _fields_ = (
         ( "name", c_char_p ),
         ( "description", c_char_p ),
-        ( "unit", c_char_p ),
+        ( "units", c_char_p ),
         ( "default", c_double ),
-        ( "min", c_double ),
-        ( "max", c_double ),
+        ( "dispmin", c_double ),
+        ( "dispmax", c_double ),
         ( "flags", c_size_t ),
         )
 
@@ -301,7 +304,7 @@ class CModelInfo(ctypes.Structure):
         ( "version", c_size_t ),
         ( "name", c_char_p ),
         ( "description", c_char_p ),
-        ( "category", c_char_p ),
+        ( "nparameters", c_size_t),
         ( "parameters", ctypes.POINTER(CParameterInfo) ),
         )
 c_model_p = ctypes.POINTER(CModelInfo)
@@ -325,7 +328,7 @@ class CSimpleParameter(ctypes.Structure):
         
 class CPolydisperseParameter(ctypes.Structure):
     _fields_ = (
-        ( "types", c_size_t ),
+        ( "type", c_size_t ),
         ( "length", c_size_t ),
         ( "values", c_double_p ),
         ( "weights", c_double_p ),
@@ -333,8 +336,9 @@ class CPolydisperseParameter(ctypes.Structure):
     def __init__(self, values, weights):
         self.type = PT_Polydisperse
         self.length = values.size
-        self.values = values.ctypes.data_as(c_double)
-        self.weights = weights.ctypes.data_as(c_double)
+        self.values = values.ctypes.data_as(c_double_p)
+        self.weights = weights.ctypes.data_as(c_double_p)
+        print "setting disp",self.type,self.length
 
 
 def pyparameters_to_c(parameters):
@@ -346,45 +350,48 @@ def pyparameters_to_c(parameters):
     """
     # First create an array of parameter structures we can send to C.  We need 
     # to hold on to them until we are finished calling the C function.
-    phandles = [(CSimpleParameter(p) if isinstance(p,double) else CPolydisperseParameter(p))
+    phandles = [(CSimpleParameter(p) if isinstance(p,float) 
+                 else CPolydisperseParameter(*p))
                 for p in parameters]
     # Add a null terminator to the end of the parameter list
     phandles.append(CEND_PARAMETER)
     # Get references to the parameter structures and put them in an array
-    cparameters = (ctypes.c_void_p * len(parameters))(*[byref(p) for p in phandles])
+    cparameters = (c_void_p * len(phandles))(*[addressof(p) for p in phandles])
+    print "cpars %x"%addressof(cparameters)
+    print "cpars[1] %x"%cparameters[1]
     # Return the array and the underlying list of structures
     return cparameters, phandles
 
-def cparameter_info_to_py(cparameters):
+def cparameter_info_to_py(nparameters, cparameters):
     """
     Convert parameter description list from C structure array to python class
     """
     parameters = []
-    for cp in cparameters:
-        print "parameter",i,cp.name
-        if cp.name is None: break
+    for index in xrange(nparameters):
+        cp = cparameters[index]
+        index += 1
         p = ParameterInfo(
             name=str(cp.name),
             description=str(cp.description),
-            unit=str(cp.unit),
-            default=double(cp.default),
-            min=double(cp.min),
-            max=double(cp.max),
+            units=str(cp.units),
+            default=float(cp.default),
+            dispmin=float(cp.dispmin),
+            dispmax=float(cp.dispmax),
             flags=int(cp.flags),
             )
         parameters.append(p)
     return parameters
 
-def cmodel_info_to_py(cmodel_info):
+def cmodel_info_to_py(cmodel_info_p):
     """
     Convert model description from C structure to python class
     """
+    cmi = cmodel_info_p[0]
     return ModelInfo(
-        version = int(cmodel_info[0].version),
-        name=str(cmodel_info[0].name),
-        category=str(cmodel_info[0].category),
-        description=str(cmodel_info[0].description),
-        parameters=cparameter_info_to_py(cmodel_info[0].parameters),
+        version = int(cmi.version),
+        name=str(cmi.name),
+        description=str(cmi.description),
+        parameter_info=cparameter_info_to_py(cmi.nparameters, cmi.parameters),
         )
 
 
@@ -422,19 +429,19 @@ def def_calculate_q(lib):
     """
     try:
         lib_calculate_q = calculate_q_prototype(lib.calculate_q)
-        def _calculate_q(self, parameters, q):
-            cparameters,phandles = pyparameters_to_c(parameters)
+        def calculate_q(self, cparameters, q):
+            "calc q"
             q = numpy.ascontiguousarray(q,'d')
             iq = numpy.empty_like(q)
-            lib_calculate_q(self.handle, cparameters, 
-                            iq.size, cparameters,
-                            iq.ctypes.data_as(c_double), 
-                            q.ctypes.data_as(c_double))
+            lib_calculate_q(self.handle, byref(cparameters), 
+                            iq.size, 
+                            iq.ctypes.data_as(c_double_p), 
+                            q.ctypes.data_as(c_double_p))
             if numpy.isnan(Iq.flat[0]):
                 logging.warn(self.name+" calculate_q returns NaN")
             return iq
     except AttributeError:
-        def _calculate_q(self, parameters, q): 
+        def calculate_q(self, cparameters, q): 
             return NotImplemented
     return calculate_q
         
@@ -445,24 +452,21 @@ def def_calculate_qxqy(lib):
     """
     try:
         lib_calculate_qxqy = calculate_qxqy_prototype(lib.calculate_qxqy)
-        def _calculate_qxqy(self, parameters, qx, qy):
-            cparameters,phandles = pyparameters_to_c(parameters)
+        def calculate_qxqy(self, cparameters, qx, qy):
+            "calc qxy"
             qx,qy = [numpy.ascontiguousarray(v,'d') for v in qx,qy]
             iq = numpy.empty_like(qx)
             lib_calculate_qxqy(self.handle, cparameters, 
-                            iq.size, cparameters,
-                            iq.ctypes.data_as(c_double), 
-                            qx.ctypes.data_as(c_double),
-                            qy.ctypes.data_as(c_double),
+                            iq.size, iq.ctypes, qx.ctypes, qy.ctypes,
                             )
             if numpy.isnan(Iq.flat[0]):
                 logging.warn(self.name+" calculate_qxqy returns NaN")
             return iq
     except AttributeError:
-        def _calculate_qxqy(self, parameters, qx, qy):
+        def calculate_qxqy(self, parameters, qx, qy):
             q = numpy.sqrt(qx**2 + qy**2)
             return self._calculate_q(handle, parameters, iq, q)
-    return _calculate_qxqy
+    return calculate_qxqy
         
 calculate_qxqyqz_prototype = ctypes.CFUNCTYPE(None, c_void_p, c_void_p, c_size_t, c_double_p, c_double_p, c_double_p, c_double_p)
 def def_calculate_qxqyqz(lib):
@@ -471,24 +475,21 @@ def def_calculate_qxqyqz(lib):
     """
     try:
         lib_calculate_qxqyqz = calculate_qxqyqz_prototype(lib.calculate_qxqyqz)
-        def _calculate_qxqyqz(self, parameters, qx, qy, qz):
-            cparameters,phandles = pyparameters_to_c(parameters)
+        def calculate_qxqyqz(self, cparameters, qx, qy, qz):
+            "calc qxyz"
             qx,qy,qz = [numpy.ascontiguousarray(v,'d') for v in qx,qy,qz]
             iq = numpy.empty_like(qx)
             lib_calculate_qxqyqz(self.handle, cparameters, 
-                            iq.size, cparameters,
-                            iq.ctypes.data_as(c_double), 
-                            qx.ctypes.data_as(c_double),
-                            qy.ctypes.data_as(c_double),
-                            qz.ctypes.data_as(c_double),
+                            iq.size, iq.ctypes, 
+                            qx.ctypes, qy.ctypes, qz.ctypes,
                             )
             if numpy.isnan(Iq.flat[0]):
                 logging.warn(self.name+" calculate_qxqyqz returns NaN")
             return iq
     except AttributeError:
-        def _calculate_qxqyqz(self, parameters, qx, qy, qz): 
+        def calculate_qxqyqz(self, parameters, qx, qy, qz): 
             return self._calculate_qxqz(parameters, qx, qy)
-    return _calculate_qxqyqz
+    return calculate_qxqyqz
 
 calculate_ER_prototype = ctypes.CFUNCTYPE(c_double, c_void_p, c_void_p)
 def def_calculate_ER(lib):
@@ -497,8 +498,7 @@ def def_calculate_ER(lib):
     """
     try:
         lib_calculate_ER = calculate_ER_prototype(lib.calculate_ER)
-        def calculate_ER(self, parameters):
-            cparameters,phandles = pyparameters_to_c(parameters)
+        def calculate_ER(self, cparameters):
             result = lib_calculate_ER(self.handle, cparameters)
             if numpy.isnan(result):
                 logging.warn(self.name+" calculate_ER returns NaN")
@@ -515,8 +515,7 @@ def def_calculate_VR(lib):
     """
     try:
         lib_calculate_VR = calculate_VR_prototype(lib.calculate_VR)
-        def calculate_VR(self, parameters):
-            cparameters,phandles = pyparameters_to_c(parameters)
+        def calculate_VR(self, cparameters):
             result = lib_calculate_VR(self.handle, cparameters)
             if numpy.isnan(result):
                 logging.warn(self.name+" calculate_VR returns NaN")
@@ -528,7 +527,9 @@ def def_calculate_VR(lib):
 
 get_model_info_prototype = ctypes.CFUNCTYPE(c_model_p)
 def get_model_info(lib):
-    cmodel_info = get_model_prototype(lib.get_model_info)()
+    lib.get_model_info.restype = c_model_p
+    #cmodel_info = get_model_info_prototype(lib.get_model_info)()
+    cmodel_info = lib.get_model_info()
     model_info = cmodel_info_to_py(cmodel_info)
     return model_info
     
@@ -544,26 +545,28 @@ def cplugin(path):
     
         ctypes void pointer to data required by the C model on initialization
     """
-    lib = ctypes.cdll[path]
+    lib = ctypes.cdll[os.path.abspath(path)]
     model_info = get_model_info(lib)
 
     class CPlugin(PluginBase):
+        handle = None # Default to no handle
+
         # Attach methods from the c library
         _create_model = def_create_model(lib)
         _destroy_model = def_destroy_model(lib)
         _calculate_q = def_calculate_q(lib)
         _calculate_qxqy = def_calculate_qxqy(lib)
         _calculate_qxqyqz = def_calculate_qxqyqz(lib)
+        _calculate_ER = def_calculate_ER(lib)
+        _calculate_VR = def_calculate_VR(lib)
         _plugin_path = path
-        calculate_ER = def_calculate_ER(lib)
-        calculate_VR = def_calculate_VR(lib)
 
         @staticmethod
         def unload_plugin():
             dlclose(lib._handle)
         
         def __init__(self, data=None):
-            CPluginBase.__init__(self, model_info)
+            PluginBase.__init__(self, model_info)
             self.handle = self._create_model(data)
 
         def __del__(self):
@@ -571,21 +574,37 @@ def cplugin(path):
 
         def free(self):
             if self.handle is not None: 
-                print "calling model destructor for",self.name
-                self._destroy_model(data)
+                #print "calling model destructor for",self.name
+                self._destroy_model(self.handle)
                 self.handle = None
 
         def calculate_Iq(self, *q):
+            pars = self._get_param_vector()
+            cparameters,phandles = pyparameters_to_c(pars)
             if len(q) == 1:
-                Iq = self._calculate_q(pars, *q)
+                print "q"
+                Iq = self._calculate_q(cparameters, *q)
             elif len(q) == 2:
-                Iq = self._calculate_qxqy(pars, *q)
+                print "qxy"
+                Iq = self._calculate_qxqy(cparameters, *q)
             elif len(q) == 3:
-                Iq = self._calculate_qxqyqz(pars, *q)
+                print "qxyz"
+                Iq = self._calculate_qxqyqz(cparameters, *q)
             else:
                 raise TypeError("calculate_Iq expects q or qx,qy or qx,qy,qz")
             return Iq
 
+        def calculate_ER(self):
+            pars = self._get_param_vector()
+            cparameters,phandles = pyparameters_to_c(pars)
+            return self._calculate_ER(cparameters)
+
+        def calculate_VR(self):
+            pars = self._get_param_vector()
+            cparameters,phandles = pyparameters_to_c(pars)
+            return self._calculate_VR(cparameters)
+
     CPlugin.__name__ = model_info.name
     CPlugin.__doc__ = model_info.description
+
     return CPlugin

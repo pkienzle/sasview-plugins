@@ -22,12 +22,13 @@ ParameterInfo param_infos[] = {
 ModelInfo model_info(
     "SphereModel",
     "P(q)=(scale/V)*[3V(sldSph-sldSolv)*(sin(qR)-qRcos(qR))/(qR)^3]^(2)+bkg",
-    "Shapes & Spheres",
     GetParameterCount(param_infos),
     param_infos);
 
 // helper
 bool update_model(void* ptr, void** p) {
+std::cout << "update model " << ptr << " " << p << std::endl;
+
     if ((ptr == NULL) || (p == NULL))
         return false;
 
@@ -36,17 +37,27 @@ bool update_model(void* ptr, void** p) {
 
     // update model
     ParameterInfo* param_info = param_infos;
-    while (param_info->Name != NULL) {
+std::cout << "npar " <<  model_info.ParameterCount << std::endl;
+    for (unsigned int i=0; i < model_info.ParameterCount; i++) {
+std::cout << i << " " <<  p << " " << *p << std::endl;
         if (p == NULL)
             return false;
 
-        switch (*(size_t*)p) {
+std::cout << "type " << *(size_t*)*p << std::endl;
+        switch (*(size_t*)*p) {
         case PT_End:
+std::cout << i << " end" << std::endl;
             return false;
         case PT_Simple:
-            model_params->value = AsSimpleParameter(p);
+std::cout << i << " mono" << std::endl;
+            model_params->value = AsSimpleParameter(*p);
+            break;
         case PT_Polydisperse:
-            model_params->dispersion = &AsPolydisperseParameter(p);
+std::cout << i << " poly" << std::endl;
+            model_params->dispersion = &AsPolydisperseParameter(*p);
+            break;
+        default:
+std::cout << "unknown type " << *(size_t*)*p << std::endl;
         }
 
         model_params++;
@@ -72,7 +83,7 @@ CExport void* create_model(void* data) { // "data" is only provided if associate
 
     // update description after construction of model
     ParameterInfo* param_info = param_infos;
-    while (param_info->Name != NULL) {
+    for (unsigned int i=0; i < model_info.ParameterCount; i++) {
         param_info->DispMin = model_params->min;
         param_info->DispMax = model_params->max;
         
@@ -93,8 +104,15 @@ CExport void calculate_q(void* ptr, void** p, int nq, double iq[], double q[]) {
     if (!update_model(ptr, p))
         show_error("calculate_q", nq, iq);
     else
+{
+std::cout << "err q" << " " << nq << " " << q << " " << iq << std::endl;
+std::cout << "err q" << " " << nq << " " << *(q) << " " << *(iq) << std::endl; 
         while (nq-- != 0)
+{
             *iq++ = (*(SphereModel*)ptr)(*q++);
+std::cout << "err q" << " " << nq << " " << q << " " << iq << std::endl;
+std::cout << "err q" << " " << nq << " " << q[-1] << " " << iq[-1] << std::endl; }
+std::cout << "done q" << std::endl; }
 }
 CExport void calculate_qxqy(void* ptr, void** p, int nq, double iq[], double qx[], double qy[]) {
     if (!update_model(ptr, p))

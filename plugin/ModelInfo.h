@@ -23,9 +23,9 @@ enum ParameterFlags {
 };
 
 struct ParameterInfo {
-    char*   Name;
-    char*   Description;
-    char*   Unit;
+    const char*   Name;
+    const char*   Description;
+    const char*   Unit;
     double  Default;
     double  DispMin;
     double  DispMax;
@@ -36,25 +36,15 @@ struct ParameterInfo {
 
 struct ModelInfo {
     size_t          Version;
-    char*           ModelName;
-    char*           ModelDescription;
-    char*           Category;
+    const char*           ModelName;
+    const char*           ModelDescription;
     size_t          ParameterCount;
     ParameterInfo*  Parameters;
     
-    ModelInfo(char* modelName, char* modelDescription, size_t parameterCount, ParameterInfo* parameters) :
+    ModelInfo(const char* modelName, const char* modelDescription, size_t parameterCount, ParameterInfo* parameters) :
         Version(1),
         ModelName(modelName),
         ModelDescription(modelDescription),
-        Category(NULL),
-        ParameterCount(parameterCount),
-        Parameters(parameters) {
-    }
-    ModelInfo(char* modelName, char* modelDescription, char* category, size_t parameterCount, ParameterInfo* parameters) :
-        Version(1),
-        ModelName(modelName),
-        ModelDescription(modelDescription),
-        Category(category),
         ParameterCount(parameterCount),
         Parameters(parameters) {
     }

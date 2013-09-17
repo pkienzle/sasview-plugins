@@ -5,15 +5,22 @@ LIBIGOR_SRC=$(SASVIEW_ROOT)/sansmodels/src/libigor
 MODEL_HEADERS=$(SASVIEW_ROOT)/sansmodels/include
 MODEL_SRC=$(SASVIEW_ROOT)/sansmodels/src/c_models
 
+#CXX=C:/MinGW32-xy/bin/g++
+#CC=C:/MinGW32-xy/bin/gcc
+#EXT=.dll
+#WINFUNCS_H=winFuncs.h
+#WINFUNCS_C=winFuncs.c
+#WINFUNCS_O=winFuncs.o
+
 # GNU compiler definition for linux
 ## use -fopenmp on CXXFLAGS/LDFLAGS for openmp
 CC=gcc
-CCFLAGS=-O2 -fPIC
+CCFLAGS=-Wall -O2 -fPIC -fopenmp
 CXX=g++
-CXXFLAGS=-Wall -O2 -fPIC
+CXXFLAGS=-Wall -O2 -fPIC -fopenmp
 INCLUDE=-I. -I$(LIBIGOR_HEADERS) -I$(MODEL_HEADERS)
 LIBEXT=.so
-LDFLAGS=-shared
+LDFLAGS=-shared -fopenmp
 LIBS=
 
 %.o: %.cpp ; $(CXX) $(CXXFLAGS) $(INCLUDE) -c $< -o $@
@@ -30,7 +37,28 @@ cylinder.o: cylinder.cpp ModelInfo.h disperser.h
 cylinder$(LIBEXT): cylinder.o disperser.o GaussWeights.o \
 	libCylinder.o libStructureFactor.o libfunc.o
 
+libSphere.o: libSphere.c libSphere.h GaussWeights.h  $(WINFUNCS_H)
+
+GaussWeights.o: GaussWeights.c GaussWeights.h
+
+#winFuncs.o: winFuncs.c winFuncs.h
+
+parameters.o: parameters.cpp parameters.hh
+
+sphere.o: sphere.cpp sphere.h parameters.hh
+
+libfunc.o: libfunc.c
+
+libCylinder.o: libCylinder.c libCylinder.h
+
+libStructureFactorr.o: libStructureFactor.cpp libStructureFactor.h
+
+SampleModel.o: SampleModel.cpp ModelInfo.h sphere.h
+
+SampleModel$(SHLIB_EXT): SampleModel.o sphere.o parameters.o libSphere.o GaussWeights.o $(WINFUNCS_O) libfunc.o
+	$(LD) $(LDFLAGS) $^ -o $@
 
 
 clean:
 	rm *.o *.so *.dll *~
+	
