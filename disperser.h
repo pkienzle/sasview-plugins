@@ -4,8 +4,8 @@
 
 class DisperserModel {
 public:
-    int vloops;
-    int npars;
+    unsigned int vloops;
+    unsigned int npars;
     std::vector<int> looporder;
     DisperserModel(const ModelInfo &m);
 
@@ -71,8 +71,7 @@ private:
 public:
     Disperser(const DisperserModel &model, int endpts[], Weight pars[])
         : _model(model), _endpts(endpts), _pars(pars) , _dp(model.npars)
-        { }
-
+        { } 
     void calc_Q(int nq, const double q[], double Iq[]);
     void calc_Qxy(int nq, const double qx[], const double qy[], double Iq[]);
     void calc_Qxyz(int nq, const double qx[], const double qy[], const double qz[], double Iq[]);
@@ -83,6 +82,6 @@ private:
     void loop_Iq(void);
     void loop_VR(void);
     void loop_ER(void);
-    void loop_par(int loop, double weight);
+    void loop_par(unsigned int loop, double weight);
 
 } ;

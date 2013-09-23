@@ -1,23 +1,23 @@
+// Volume parameters are computed first to reduce the total computational 
+// effort.  Rearrange the looporder parameters so that they do come first.
+#include <cstdio>
 #include <cmath>
 #include <algorithm>
 #include <ModelInfo.h>
 #include <disperser.h>
 
+/**
+ * Initialize the disperse, putting volume parameters first.
+ */
 DisperserModel::DisperserModel(const ModelInfo &m) : looporder(m.ParameterCount) {
-  // Volume parameters are computed first to reduce the total computational 
-  // effort.  Rearrange the looporder parameters so that they do come first.
-  //std::cout << "in disperserModel constructor" << std::endl << std::flush;
-  //std::cout << "par count " << m.ParameterCount << std::endl << std::flush;
-  for (unsigned int i=0; i < m.ParameterCount; i++) looporder[i] = i;
-  //std::cout << "zeroed" << std::endl << std::flush;
+  npars = m.ParameterCount;
+  for (unsigned int i=0; i < npars; i++) looporder[i] = i;
   vloops = 0;
-  for (unsigned int i=0; i < m.ParameterCount; i++) {
+  for (unsigned int i=0; i < npars; i++) {
     if (m.Parameters[i].Flags&PF_Volume) {
-      //std::cout << "swapping " << vloops << " with " << i << std::endl << std::flush;
       std::swap(looporder[vloops++],looporder[i]);
     }
   }
-  //std::cout << "inited" << std::endl << std::flush;
 }
 
 double
@@ -161,6 +161,11 @@ Disperser::calc_ER() {
   return _Vnorm;
 }
 
+/**
+ * Process an I(Q) calculation.  This clears the Iq result
+ * vector, calls loop_par to process the parameters one by
+ * one, then normalizes the result.
+ */ 
 void
 Disperser::loop_Iq(void) {
   _volume = 1; // in case there is no volume normalization
@@ -168,28 +173,39 @@ Disperser::loop_Iq(void) {
   _looper->clear();
   _target = IQ;
   loop_par(0, 1.);
-  _looper->scale(_Vnorm/_Wnorm);
+  _looper->scale(_Vnorm == 0. ? 1./_Wnorm : 1./_Vnorm);
 }
 
+/**
+ * Process one level of the dispersion loop.  The loop
+ * parameters are ordered so that those which affect the
+ * volume come first.  This way the volume calculation
+ * does not need to be repeated for those parameters that
+ * do not affect the volume.
+ */
 void 
-Disperser::loop_par(int loop, double weight)
+Disperser::loop_par(unsigned int loop, double weight)
 {
   int p = _model.looporder[loop];
-  int n = (p == 0 ? _endpts[0] : _endpts[p] - _endpts[p-1]);
+  int n = (p == 0 ? _endpts[0] : (_endpts[p] - _endpts[p-1]));
   int offset = (p == 0 ? 0 : _endpts[p-1]);
   const Weight *w = _pars + offset;
   for (int i=0; i < n; i++) {
+    // Set parameter value and weight for this level
     double wi = w[i].weight * weight;
     _dp[p] = w[i].value;
-    if (loop == _model.vloops-1) {
-      if (_target == VR) {
-        _volume = wi * _model.formV(&_dp[0]);
-        _Vnorm += _volume;
+    // Set volume and accumulate volume normalization
+    if (loop+1 == _model.vloops) {
+      if (_target == VR || _target == IQ) {
+        _volume = _model.formV(&_dp[0]);
+        _Vnorm += wi * _volume;
       } else if (_target == ER) {
-        _volume = wi * _model.formER(&_dp[0]);
-        _Vnorm += _volume;
+        _volume = _model.formER(&_dp[0]);
+        _Vnorm += wi * _volume;
       }
-    } else if (loop == _model.vloops) {
+    } 
+    // Break if just computing ER/VR
+    if (loop == _model.vloops) {
         if (_target == ER || _target == VR) break;
     } 
     // Go the the next loop level
