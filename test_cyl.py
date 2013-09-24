@@ -59,5 +59,5 @@ start=time.time()
 for qi in q: Iq=newsm.evalDistribution(numpy.array([qi]))
 #for qi in q: Iq=newsm.calculate_Iq(numpy.array([qi]))
 dt = time.time()-start
-print "newsm loop",dt,Iq[-1]
+print "newsm loop",dt,Iq
 
