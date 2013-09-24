@@ -32,6 +32,7 @@ public:
 
 class QLooper {
 public:
+    virtual ~QLooper() {};
     virtual void clear() = 0;
     virtual void scale(double weight) = 0;
     virtual void loop(const DisperserModel& m, const double dp[], double weight) = 0;

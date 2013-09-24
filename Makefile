@@ -14,9 +14,12 @@ MODEL_SRC=$(SASVIEW_ROOT)/sansmodels/src/c_models
 
 # GNU compiler definition for linux
 ## use -fopenmp on CXXFLAGS/LDFLAGS for openmp
-CC=gcc
+#CC=cc
+#CXX=c++
+CC=/opt/local/bin/gcc-mp-4.7
+CXX=/opt/local/bin/g++-mp-4.7
+
 CCFLAGS=-Wall -O2 -fPIC -fopenmp
-CXX=g++
 CXXFLAGS=-Wall -O2 -fPIC -fopenmp
 INCLUDE=-I. -I$(LIBIGOR_HEADERS) -I$(MODEL_HEADERS)
 LIBEXT=.so
@@ -51,7 +54,7 @@ libfunc.o: libfunc.c
 
 libCylinder.o: libCylinder.c libCylinder.h
 
-libStructureFactorr.o: libStructureFactor.cpp libStructureFactor.h
+libStructureFactorr.o: libStructureFactor.c libStructureFactor.h
 
 SampleModel.o: SampleModel.cpp ModelInfo.h sphere.h
 
@@ -60,5 +63,5 @@ SampleModel$(SHLIB_EXT): SampleModel.o sphere.o parameters.o libSphere.o GaussWe
 
 
 clean:
-	rm *.o *.so *.dll *~
+	-rm *.o *.so *.dll *~
 	
