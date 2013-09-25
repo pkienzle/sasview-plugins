@@ -30,18 +30,10 @@ public:
     formVR(const double dp[]) const = 0;
 } ;
 
-class QLooper {
-public:
-    virtual ~QLooper() {};
-    virtual void clear() = 0;
-    virtual void scale(double weight) = 0;
-    virtual void loop(const DisperserModel& m, const double dp[], double weight) = 0;
-} ;
-
 class Disperser {
 
 private:
-    enum CalcTarget { IQ, ER, VR } ;
+    enum CalcTarget { IQ, IQXY, IQXYZ, ER, VR } ;
     // The calculator for the model at Q.  This also contains the parameter
     // looping order and the number of volume parameters so that volume is
     // only calculated once.
@@ -57,9 +49,10 @@ private:
     
     // The Q vector to calculate.  These are stored in the disperser object
     // rather than passed through the recursion over each looping parameter.
+    int _nq;
+    double *_iq;
+    const double *_qx, *_qy, *_qz;
 
-    QLooper *_looper;
-    
     // The normalization factors for the dispersion.  These are accumulated
     // as we loop over the dispersion parameters.  The volume and volume
     // normalization are only calculated when looping over the final volume

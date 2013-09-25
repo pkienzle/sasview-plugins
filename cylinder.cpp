@@ -1,6 +1,6 @@
-#include <cstdio>
 #include <cmath>
-#include <stdexcept>
+#include <cstdio>
+
 
 #include <disperser.h>
 
@@ -212,7 +212,7 @@ public:
     double
     formQ(const double dp[], double q) const {
         //Parameters *p = (Parameters *)dp;
-//std::cout << "throwing" << std::endl;
+//std::cout << "cyl form" << std::endl;
 //throw std::invalid_argument("cyl_ana_2D: out of range");
 //std::cout << "after throw" << std::endl;
         return CylinderForm(const_cast<double*>(&dp[0]), q);
@@ -251,11 +251,12 @@ static const Model model(model_info);
 CExport void* get_model_info() { return &model_info; }
 //CExport void* create_model(void* data) { return NULL; }
 //CExport void destroy_model(void* ptr) {}
-void report_error () { std::cout << "unexpected error" << std::endl; }
+//void report_error () { std::cout << "unexpected error" << std::endl; }
 CExport void calculate_q(void* ptr, int pindex[], Weight pars[], size_t nq, double iq[], double q[]) {
-std::set_unexpected(report_error);
+//std::set_unexpected(report_error);
 //try {
 //std::cout << "preparing to catch" << std::endl;
+//std::cout << "I(q) " << ptr << " " << pindex << " " << pars << " " << iq << " " << q << std::endl;
 	Disperser(model, pindex, pars).calc_Q(nq, q, iq);
 //} catch (std::exception& e) {
 //std::cout << "caught " << e.what() << std::endl;

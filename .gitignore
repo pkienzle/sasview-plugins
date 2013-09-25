@@ -1,5 +1,9 @@
+.idea
 *.pyc
 *.o
 *~
+*.obj
 *.so
 *.dll
+*.exp
+*.lib

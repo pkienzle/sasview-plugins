@@ -1,10 +1,18 @@
 // Volume parameters are computed first to reduce the total computational 
 // effort.  Rearrange the looporder parameters so that they do come first.
-#include <cstdio>
 #include <cmath>
 #include <algorithm>
+#include <cstdio>
+
 #include <ModelInfo.h>
 #include <disperser.h>
+
+#if 1
+#include <float.h>
+namespace std {
+inline bool isfinite(const double c) { return _finite(c) != 0; }
+} ;
+#endif
 
 /**
  * Initialize the disperse, putting volume parameters first.
@@ -32,115 +40,34 @@ DisperserModel::formQxyz(const double dp[], double qx, double qy, double qz) con
     return formQxy(dp, qx, qy);
 }
 
-class LoopQ : public QLooper  {
-private:
-  const int _nq;
-  const double *_q;
-  double *_Iq;
-public: 
-  LoopQ(int nq, const double q[], double Iq[]) 
-    : _nq(nq), _q(q), _Iq(Iq) {}
-  void clear(void);
-  void scale(double weight);
-  void loop(const DisperserModel& m, const double dp[], double weight);
-} ;
-void LoopQ::clear(void) {
-  #pragma omp parallel for
-  for (int i=0; i < _nq; i++) _Iq[i] = 0.;
-}
-void LoopQ::scale(double weight) {
-  #pragma omp parallel for
-  for (int i=0; i < _nq; i++) _Iq[i] *= weight;
-}
-void LoopQ::loop(const DisperserModel& m, const double dp[], double weight) {
-  #pragma omp parallel for
-  for (int i=0; i < _nq; i++) {
-    const double result = m.formQ(dp, _q[i]);
-    // ignore singular results from kernel 
-    if (std::isfinite(result)) _Iq[i] += result * weight;
-  }
-}
-
-class LoopQxy : public QLooper  {
-private:
-  const int _nq;
-  const double *_qx;
-  const double *_qy;
-  double *_Iq;
-public: 
-  LoopQxy(int nq, const double qx[], const double qy[], double Iq[]) 
-    : _nq(nq), _qx(qx), _qy(qy), _Iq(Iq) {}
-  void clear(void);
-  void scale(double weight);
-  void loop(const DisperserModel& m, const double dp[], double weight);
-} ;
-void LoopQxy::clear(void) {
-  #pragma omp parallel for
-  for (int i=0; i < _nq; i++) _Iq[i] = 0.;
-}
-void LoopQxy::scale(double weight) {
-  #pragma omp parallel for
-  for (int i=0; i < _nq; i++) _Iq[i] *= weight;
-}
-void LoopQxy::loop(const DisperserModel& m, const double dp[], double weight) {
-  #pragma omp parallel for
-  for (int i=0; i < _nq; i++) {
-    const double result = m.formQxy(dp, _qx[i], _qy[i]);
-    // ignore singular results from kernel 
-    if (std::isfinite(result)) _Iq[i] += result * weight;
-  }
-}
-
-class LoopQxyz : public QLooper  {
-private:
-  const int _nq;
-  const double *_qx;
-  const double *_qy;
-  const double *_qz;
-  double *_Iq;
-public: 
-  LoopQxyz(int nq, const double qx[], const double qy[], const double qz[], double Iq[]) 
-    : _nq(nq), _qx(qx), _qy(qy), _qz(qz), _Iq(Iq) {}
-  void clear(void);
-  void scale(double weight);
-  void loop(const DisperserModel& m, const double dp[], double weight);
-} ;
-void LoopQxyz::clear(void) {
-  #pragma omp parallel for
-  for (int i=0; i < _nq; i++) _Iq[i] = 0.;
-}
-void LoopQxyz::scale(double weight) {
-  #pragma omp parallel for
-  for (int i=0; i < _nq; i++) _Iq[i] *= weight;
-}
-void LoopQxyz::loop(const DisperserModel& m, const double dp[], double weight) {
-  #pragma omp parallel for
-  for (int i=0; i < _nq; i++) {
-    const double result = m.formQxyz(dp, _qx[i], _qy[i], _qz[i]);
-    // ignore singular results from kernel 
-    if (std::isfinite(result)) _Iq[i] += result * weight;
-  }
-}
-
 void 
 Disperser::calc_Q(int nq, const double q[], double Iq[]) {
-  _looper = new LoopQ(nq, q, Iq);
+  _nq = nq;
+  _iq = Iq;
+  _qx = q;
+  _target = IQ;
   loop_Iq();
-  delete _looper;
 }
 
 void 
 Disperser::calc_Qxy(int nq, const double qx[], const double qy[], double Iq[]) {
-  _looper = new LoopQxy(nq, qx, qy, Iq);
+  _nq = nq;
+  _iq = Iq;
+  _qx = qx;
+  _qy = qy;
+  _target = IQXY;
   loop_Iq();
-  delete _looper;
 }
 
 void 
 Disperser::calc_Qxyz(int nq, const double qx[], const double qy[], const double qz[], double Iq[]) {
-  _looper = new LoopQxyz(nq, qx, qy, qz, Iq);
+  _nq = nq;
+  _iq = Iq;
+  _qx = qx;
+  _qy = qy;
+  _qz = qz;
+  _target = IQXYZ;
   loop_Iq();
-  delete _looper;
 }
 
 double
@@ -168,12 +95,21 @@ Disperser::calc_ER() {
  */ 
 void
 Disperser::loop_Iq(void) {
+//std::printf("loopQ\n");
   _volume = 1; // in case there is no volume normalization
   _Vnorm = (_model.vloops == 0 ? 1. : 0.);
-  _looper->clear();
-  _target = IQ;
+
+  // clear
+  #pragma omp parallel for
+  for (int i=0; i < _nq; i++) _iq[i] = 0.;
+
+  // loop
   loop_par(0, 1.);
-  _looper->scale(_Vnorm == 0. ? 1./_Wnorm : 1./_Vnorm);
+
+  // scale
+  const double weight = (_Vnorm == 0. ? 1./_Wnorm : 1./_Vnorm);
+  #pragma omp parallel for
+  for (int i=0; i < _nq; i++) _iq[i] *= weight;
 }
 
 /**
@@ -186,6 +122,7 @@ Disperser::loop_Iq(void) {
 void 
 Disperser::loop_par(unsigned int loop, double weight)
 {
+//std::printf("loop %d %g\n",loop,weight);
   int p = _model.looporder[loop];
   int n = (p == 0 ? _endpts[0] : (_endpts[p] - _endpts[p-1]));
   int offset = (p == 0 ? 0 : _endpts[p-1]);
@@ -213,7 +150,31 @@ Disperser::loop_par(unsigned int loop, double weight)
       loop_par(loop+1, wi);
     } else {
       _Wnorm += wi;
-      _looper->loop(_model, &_dp[0], wi*_volume);
+
+      const double weight = wi*_volume;
+      const double* dp = &_dp[0];
+      if (_target == IQ) {
+        #pragma omp parallel for
+        for (int i=0; i < _nq; i++) {
+          const double result = _model.formQ(dp, _qx[i]);
+          // ignore singular results from kernel
+          if (std::isfinite(result)) _iq[i] += result * weight;
+        }
+      } else if (_target == IQXY) {
+        #pragma omp parallel for
+        for (int i=0; i < _nq; i++) {
+          const double result = _model.formQxy(dp, _qx[i], _qy[i]);
+          // ignore singular results from kernel
+          if (std::isfinite(result)) _iq[i] += result * weight;
+        }
+      } else if (_target == IQXYZ) {
+        #pragma omp parallel for
+        for (int i=0; i < _nq; i++) {
+          const double result = _model.formQxyz(dp, _qx[i], _qy[i], _qz[i]);
+          // ignore singular results from kernel
+          if (std::isfinite(result)) _iq[i] += result * weight;
+        }
+      }
     }
   }
 }

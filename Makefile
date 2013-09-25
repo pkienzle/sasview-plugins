@@ -1,5 +1,6 @@
 #SASVIEW_ROOT=/Users/pkienzle/Source/sasview
-SASVIEW_ROOT=/home/pkienzle/src/sasview
+#SASVIEW_ROOT=/home/pkienzle/src/sasview
+SASVIEW_ROOT=C:/Source/sasview
 LIBIGOR_HEADERS=$(SASVIEW_ROOT)/sansmodels/src/libigor
 LIBIGOR_SRC=$(SASVIEW_ROOT)/sansmodels/src/libigor
 MODEL_HEADERS=$(SASVIEW_ROOT)/sansmodels/include
@@ -7,22 +8,22 @@ MODEL_SRC=$(SASVIEW_ROOT)/sansmodels/src/c_models
 
 #CXX=C:/MinGW32-xy/bin/g++
 #CC=C:/MinGW32-xy/bin/gcc
-#EXT=.dll
 #WINFUNCS_H=winFuncs.h
 #WINFUNCS_C=winFuncs.c
 #WINFUNCS_O=winFuncs.o
+#LIBEXT=.dll
 
 # GNU compiler definition for linux
 ## use -fopenmp on CXXFLAGS/LDFLAGS for openmp
-#CC=cc
-#CXX=c++
-CC=/opt/local/bin/gcc-mp-4.7
-CXX=/opt/local/bin/g++-mp-4.7
+CC=gcc
+CXX=g++
+#CC=/opt/local/bin/gcc-mp-4.7
+#CXX=/opt/local/bin/g++-mp-4.7
+LIBEXT=.so
 
 CCFLAGS=-Wall -O2 -fPIC -fopenmp
 CXXFLAGS=-Wall -O2 -fPIC -fopenmp
 INCLUDE=-I. -I$(LIBIGOR_HEADERS) -I$(MODEL_HEADERS)
-LIBEXT=.so
 LDFLAGS=-shared -fopenmp
 LIBS=
 
