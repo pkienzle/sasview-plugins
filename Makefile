@@ -1,6 +1,6 @@
 
-SASVIEW_ROOT=/Users/pkienzle/Source/sasview
-#SASVIEW_ROOT=/home/pkienzle/src/sasview
+#SASVIEW_ROOT=/Users/pkienzle/Source/sasview
+SASVIEW_ROOT=/home/pkienzle/src/sasview
 #SASVIEW_ROOT=C:/Source/sasview
 LIBIGOR_HEADERS=$(SASVIEW_ROOT)/sansmodels/src/libigor
 LIBIGOR_SRC=$(SASVIEW_ROOT)/sansmodels/src/libigor
@@ -18,8 +18,8 @@ MODEL_SRC=$(SASVIEW_ROOT)/sansmodels/src/c_models
 ## use -fopenmp on CXXFLAGS/LDFLAGS for openmp
 #CC=gcc
 #CXX=g++
-CC=/opt/local/bin/gcc-mp-4.7
-CXX=/opt/local/bin/g++-mp-4.7
+#CC=/opt/local/bin/gcc-mp-4.7
+#CXX=/opt/local/bin/g++-mp-4.7
 LIBEXT=.so
 
 CCFLAGS=-Wall -O2 -fPIC -fopenmp

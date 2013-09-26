@@ -25,7 +25,7 @@ def _run_one(model, q, q1, q2):
 
 def run(name, model, Dispersion):
 
-    disp = {'npts':2, 'width':0.1666666667, 'nsigmas':2}
+    disp = {'npts':15, 'width':0.1666666667, 'nsigmas':2}
     model_pars = {'scale':1.0, 'radius':60.0, 'sldCyl': 2.0, 'sldSolv': 1.0, 'background': 0.0}
     q1,q2 = 0.1, 0.2
     q = numpy.linspace(q1,q2,1000)    #print "q",q.shape,q.dtype
@@ -43,8 +43,8 @@ def run(name, model, Dispersion):
     for k,v in disp.items(): model.dispersion['radius'][k] = v
 
     ldisp = Dispersion()
-    model.set_dispersion('length', ldisp)
-    for k,v in disp.items(): model.dispersion['length'][k] = v
+    #model.set_dispersion('length', ldisp)
+    #for k,v in disp.items(): model.dispersion['length'][k] = v
 
     print "===", name, "with dispersion"
     _run_one(model, q, q1, q2)

@@ -20,10 +20,28 @@ inline bool isfinite(const double c) { return _finite(c) != 0; }
 DisperserModel::DisperserModel(const ModelInfo &m) : looporder(m.ParameterCount) {
   npars = m.ParameterCount;
   for (unsigned int i=0; i < npars; i++) looporder[i] = i;
-  vloops = 0;
+
+  // Move volume parameters to the beginning
+  volume_loops = 0;
   for (unsigned int i=0; i < npars; i++) {
     if (m.Parameters[i].Flags&PF_Volume) {
-      std::swap(looporder[vloops++],looporder[i]);
+      std::swap(looporder[volume_loops++],looporder[i]);
+    }
+  }
+
+  // Move magnetism parameters to the end
+  magnetic_loops = npars;
+  for (unsigned int i=npars; i > volume_loops; i--) {
+    if (m.Parameters[i-1].Flags&PF_Magnetic) {
+        std::swap(looporder[--magnetic_loops],looporder[i-1]);
+    }
+  }
+
+  // Move non-magnetism orientation parameters before the magnetism parameters
+  orientation_loops = npars;
+  for (unsigned int i=magnetic_loops; i > volume_loops; i--) {
+    if (m.Parameters[i-1].Flags&PF_Orientation) {
+        std::swap(looporder[--orientation_loops],looporder[i-1]);
     }
   }
 }
@@ -73,7 +91,7 @@ Disperser::calc_Qxyz(int nq, const double qx[], const double qy[], const double 
 double
 Disperser::calc_VR() {
   _volume = 1;
-  _Vnorm = (_model.vloops == 0 ? 1. : 0.);
+  _Vnorm = (_model.volume_loops == 0 ? 1. : 0.);
   _target = VR;
   loop_par(0, 1.);
   return _Vnorm;
@@ -82,7 +100,7 @@ Disperser::calc_VR() {
 double
 Disperser::calc_ER() {
   _volume = 1;
-  _Vnorm = (_model.vloops == 0 ? 1. : 0.);
+  _Vnorm = (_model.volume_loops == 0 ? 1. : 0.);
   _target = ER;
   loop_par(0, 1.);
   return _Vnorm;
@@ -97,7 +115,7 @@ void
 Disperser::loop_Iq(void) {
 //std::printf("loopQ\n");
   _volume = 1; // in case there is no volume normalization
-  _Vnorm = (_model.vloops == 0 ? 1. : 0.);
+  _Vnorm = (_model.volume_loops == 0 ? 1. : 0.);
 
   // clear
   #pragma omp parallel for
@@ -132,7 +150,7 @@ Disperser::loop_par(unsigned int loop, double weight)
     double wi = w[i].weight * weight;
     _dp[p] = w[i].value;
     // Set volume and accumulate volume normalization
-    if (loop+1 == _model.vloops) {
+    if (loop+1 == _model.volume_loops) {
       if (_target == VR || _target == IQ) {
         _volume = _model.formV(&_dp[0]);
         _Vnorm += wi * _volume;
@@ -142,11 +160,13 @@ Disperser::loop_par(unsigned int loop, double weight)
       }
     } 
     // Break if just computing ER/VR
-    if (loop == _model.vloops) {
+    if (loop == _model.volume_loops) {
         if (_target == ER || _target == VR) break;
     } 
-    // Go the the next loop level
-    if (loop < _model.npars) {
+    // Go the the next loop level; when computing Iq, ignore
+    // orientation and magnetism parameters.
+    if (loop < _model.npars 
+        || (_target == IQ && loop < _model.orientation_loops)) {
       loop_par(loop+1, wi);
     } else {
       _Wnorm += wi;
