@@ -7,7 +7,7 @@
 #include <ModelInfo.h>
 #include <disperser.h>
 
-#if 1
+#if 0
 #include <float.h>
 namespace std {
 inline bool isfinite(const double c) { return _finite(c) != 0; }

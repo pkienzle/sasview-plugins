@@ -1,6 +1,7 @@
-#SASVIEW_ROOT=/Users/pkienzle/Source/sasview
+
+SASVIEW_ROOT=/Users/pkienzle/Source/sasview
 #SASVIEW_ROOT=/home/pkienzle/src/sasview
-SASVIEW_ROOT=C:/Source/sasview
+#SASVIEW_ROOT=C:/Source/sasview
 LIBIGOR_HEADERS=$(SASVIEW_ROOT)/sansmodels/src/libigor
 LIBIGOR_SRC=$(SASVIEW_ROOT)/sansmodels/src/libigor
 MODEL_HEADERS=$(SASVIEW_ROOT)/sansmodels/include
@@ -15,10 +16,10 @@ MODEL_SRC=$(SASVIEW_ROOT)/sansmodels/src/c_models
 
 # GNU compiler definition for linux
 ## use -fopenmp on CXXFLAGS/LDFLAGS for openmp
-CC=gcc
-CXX=g++
-#CC=/opt/local/bin/gcc-mp-4.7
-#CXX=/opt/local/bin/g++-mp-4.7
+#CC=gcc
+#CXX=g++
+CC=/opt/local/bin/gcc-mp-4.7
+CXX=/opt/local/bin/g++-mp-4.7
 LIBEXT=.so
 
 CCFLAGS=-Wall -O2 -fPIC -fopenmp
@@ -64,5 +65,5 @@ SampleModel$(SHLIB_EXT): SampleModel.o sphere.o parameters.o libSphere.o GaussWe
 
 
 clean:
-	-rm *.o *.so *.dll *~
+	-rm *.o *.obj *.lib *.exp *.so *.dll *~
 	

@@ -223,9 +223,9 @@ class PluginBase(BaseComponent):
         """
         if isinstance(x, list) and len(x) == 2:
             q, phi = x
-            return self.calculate_Iq([q * math.cos(phi)], [q * math.sin(phi)])
+            return self.calculate_Iq([q * math.cos(phi)], [q * math.sin(phi)])[0]
         else:
-            return self.calculate_Iq([float(x)])
+            return self.calculate_Iq([float(x)])[0]
 
     def runXY(self, x):
         """
@@ -234,9 +234,9 @@ class PluginBase(BaseComponent):
         **DEPRECATED**: use calculate_Iq instead
         """
         if isinstance(x, list) and len(x) == 2:
-            return self.calculate_Iq(*x)
+            return self.calculate_Iq(*x)[0]
         else:
-            return self.calculate_Iq([float(x)])
+            return self.calculate_Iq([float(x)])[0]
 
     def clone(self):
         """ Returns a new object identical to the current object """
