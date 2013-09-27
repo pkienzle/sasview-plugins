@@ -7,42 +7,42 @@ import time
 #import pdb; pdb.set_trace()
 
 def _run_one(model, q, q1, q2):
-    print "run   %g=>%.5g, %g=>%.5g"%(q1, model.run(q1), q2, model.run(q2))
+    print "run    %g=>%.5g, %g=>%.5g"%(q1, model.run(q1), q2, model.run(q2))
     Iq = model.evalDistribution(numpy.array((q1,q2),'d'))
-    print "eval  %g=>%.5g, %g=>%.5g"%(q1,Iq[0],q2,Iq[1])
+    print "eval   %g=>%.5g, %g=>%.5g"%(q1,Iq[0],q2,Iq[1])
 
     start=time.time()
     Iq=model.evalDistribution(q)
     dt = time.time()-start
-    print "vec   %g=>%.5g, %g=>%.5g"%(q[0],Iq[0],q[-1],Iq[-1]), "time %.1f ms"%(dt*1000)
+    print "128    %g=>%.5g, %g=>%.5g"%(q[0],Iq[0],q[-1],Iq[-1]), "time %.1f ms"%(dt*1000)
 
     start=time.time()
     Iq = []
-    for _ in range(10): Iq = model.evalDistribution(q)
+    for _ in range(100): Iq = model.evalDistribution(q)
     dt = time.time()-start
-    print "vec10 %g=>%.5g, %g=>%.5g"%(q[0],Iq[0],q[-1],Iq[-1]), "time %.1f ms"%(dt*1000)
+    print "loop(100) 128 %g=>%.5g, %g=>%.5g"%(q[0],Iq[0],q[-1],Iq[-1]), "time %.1f ms"%(dt*1000)
 
 def _run_two(model, q, q1, q2):
-    print "runXY  %g,%g=>%.5g, %g,%g=>%.5g"%(q1, q2, model.runXY((q1,q2)), q2, q1, model.runXY((q2,q1)))
-    Iq = model.evalDistribution((numpy.array((q1,q2),'d'), numpy.array((q2,q1),'d')))
-    print "evalXY %g,%g=>%.5g, %g,%g=>%.5g"%(q1,q2,Iq[0],q2,q1,Iq[1])
+    print "runXY  %g,%g=>%.5g, %g,%g=>%.5g"%(q1, q1, model.runXY((q1,q1)), q2, q2, model.runXY((q2,q2)))
+    Iq = model.evalDistribution((numpy.array((q1,q2),'d'), numpy.array((q1,q2),'d')))
+    print "evalXY %g,%g=>%.5g, %g,%g=>%.5g"%(q1,q1,Iq[0],q2,q2,Iq[1])
 
     qx,qy = numpy.meshgrid(q,q)
     start=time.time()
     Iq=model.evalDistribution((qx,qy))
     dt = time.time()-start
-    print "vecXY  %g,%g=>%.5g, %g,%g=>%.5g"%(qx[0,0],qy[0,0],Iq[0,0],qx[-1,-1],qy[-1,-1],Iq[-1,-1]), "time %.1f ms"%(dt*1000)
+    print "128x128 %g,%g=>%.5g, %g,%g=>%.5g"%(qx[0,0],qy[0,0],Iq[0,0],qx[-1,-1],qy[-1,-1],Iq[-1,-1]), "time %.1f ms"%(dt*1000)
 
 def run(name, Model, pars, Dispersion):
 
     disp = {'npts':15, 'width':0.1666666667, 'nsigmas':2}
     q1,q2 = 0.1, 0.2
-    q = numpy.linspace(q1,q2,1000)    #print "q",q.shape,q.dtype
+    q = numpy.linspace(q1,q2,128)    #print "q",q.shape,q.dtype
     model = Model()
     for k,v in pars.items(): model.setParam(k,v)
 
 
-    print "===", name, "without dispersion"
+    print "===", name, "without dispersity"
     _run_one(model, q, q1, q2)
     _run_two(model, q, q1, q2)
 
@@ -56,7 +56,7 @@ def run(name, Model, pars, Dispersion):
     model.set_dispersion('length', ldisp)
     for k,v in disp.items(): model.dispersion['length'][k] = v
 
-    print "===", name, "with dispersion"
+    print "===", name, "with %dx%d polydispersity"%(disp['npts'],disp['npts'])
     _run_one(model, q, q1, q2)
     _run_two(model, q, q1, q2)
 
