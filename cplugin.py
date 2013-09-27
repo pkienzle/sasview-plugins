@@ -198,7 +198,7 @@ class PluginBase(BaseComponent):
                     where qx,qy are 1D ndarrays 
         
         """
-        if isinstance(qdist, list):
+        if isinstance(qdist, (list,tuple)):
             # Check whether we have a list of ndarrays [qx,qy]
             if (len(qdist) != 2
                 or any(not isinstance(v, numpy.ndarray) for v in qdist)):
@@ -233,7 +233,7 @@ class PluginBase(BaseComponent):
         
         **DEPRECATED**: use calculate_Iq instead
         """
-        if isinstance(x, list) and len(x) == 2:
+        if isinstance(x, (list,tuple)) and len(x) == 2:
             return self.calculate_Iq(*x)[0]
         else:
             return self.calculate_Iq([float(x)])[0]
