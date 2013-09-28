@@ -194,6 +194,7 @@ static double cylinder_analytical_2D_scaled(const Parameters &pars, double q, do
 static double cylinder_analytical_2DXY(const Parameters& pars, double qx, double qy) {
   double q;
   q = sqrt(qx*qx+qy*qy);
+
   return cylinder_analytical_2D_scaled(pars, q, qx/q, qy/q);
 }
 
@@ -212,16 +213,15 @@ public:
     double
     formQ(const double dp[], double q) const {
         //Parameters *p = (Parameters *)dp;
-//std::cout << "cyl form" << std::endl;
-//throw std::invalid_argument("cyl_ana_2D: out of range");
-//std::cout << "after throw" << std::endl;
         return CylinderForm(const_cast<double*>(&dp[0]), q);
     }
 
     double
     formQxy(const double dp[], double qx, double qy) const {
         const Parameters &p = *(const Parameters *)dp;
-        return cylinder_analytical_2DXY(p, qx, qy);
+        double answer = cylinder_analytical_2DXY(p, qx, qy);
+        //if (qx==0.1) std::printf("answer: %g\n",answer);
+        return answer;
     }
 
     double
@@ -253,18 +253,7 @@ CExport void* get_model_info() { return &model_info; }
 //CExport void destroy_model(void* ptr) {}
 //void report_error () { std::cout << "unexpected error" << std::endl; }
 CExport void calculate_q(void* ptr, int pindex[], Weight pars[], size_t nq, double iq[], double q[]) {
-//std::set_unexpected(report_error);
-//try {
-//std::cout << "preparing to catch" << std::endl;
-//std::cout << "I(q) " << ptr << " " << pindex << " " << pars << " " << iq << " " << q << std::endl;
 	Disperser(model, pindex, pars).calc_Q(nq, q, iq);
-//} catch (std::exception& e) {
-//std::cout << "caught " << e.what() << std::endl;
-//} catch (int &x) {
-//std::cout << "caught int " << x << std::endl;
-//} catch (...) {
-//std::cout << "caught rest" << std::endl;
-//}
 }
 CExport void calculate_qxqy(void* ptr, int pindex[], Weight pars[], size_t nq, double iq[], double qx[], double qy[]) {
 	Disperser(model, pindex, pars).calc_Qxy(nq, qx, qy, iq);

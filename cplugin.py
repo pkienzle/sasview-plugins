@@ -360,16 +360,13 @@ def cmodel_info_to_py(cmodel_info):
     )
 
 
-create_model_prototype = ctypes.CFUNCTYPE(c_void_p, c_void_p)
-
-
 def def_create_model(lib):
     """
     Wrap create_model from lib if it exists, or return alternate.
     """
     try:
-        lib_create_model = create_model_prototype(lib.create_model)
-
+        lib_create_model = lib.create_model
+        lib_create_model.restype = c_void_p
         def _create_model(self, data):
             return lib_create_model(data)
     except AttributeError:
@@ -378,40 +375,33 @@ def def_create_model(lib):
     return _create_model
 
 
-destroy_model_prototype = ctypes.CFUNCTYPE(None, c_void_p)
-
-
 def def_destroy_model(lib):
     """
     Wrap destroy_model from lib if it exists, or return alternate.
     """
     try:
-        lib_destroy_model = destroy_model_prototype(lib.destroy_model)
-
+        lib_destroy_model = lib.destroy_model
         def _destroy_model(self, handle):
-            return lib_destroy_model(handle)
+            lib_destroy_model(handle)
     except AttributeError:
         def _destroy_model(self, handle):
             pass
     return _destroy_model
 
 
-calculate_q_prototype = ctypes.CFUNCTYPE(None, c_void_p, c_int_p, c_double_p, c_size_t, c_double_p, c_double_p)
 def def_calculate_q(lib):
     """
     Wrap calculate_q from lib if it exists, or return alternate.
     """
     try:
-        lib_calculate_q = calculate_q_prototype(lib.calculate_q)
+        lib_q = lib.calculate_q
         def _calculate_q(self, ends, weights, q):
+            ends = numpy.ascontiguousarray(ends, 'i')
+            weights = numpy.ascontiguousarray(weights, 'd')
             q = numpy.ascontiguousarray(q, 'd')
             iq = numpy.empty_like(q)
-            lib.calculate_q(self.handle,
-                            ends.ctypes.data_as(c_int_p),
-                            weights.ctypes.data_as(c_double_p),
-                            iq.size, iq.ctypes.data_as(c_double_p),
-                            q.ctypes.data_as(c_double_p),
-                            )
+            lib_q(self.handle, ends.ctypes.data, weights.ctypes.data,
+                  iq.size, iq.ctypes.data, q.ctypes.data)
             if numpy.isnan(iq.flat[0]):
                 logging.warn(self.name + " calculate_q returns NaN")
             return iq
@@ -421,23 +411,20 @@ def def_calculate_q(lib):
     return _calculate_q
 
 
-calculate_qxqy_prototype = ctypes.CFUNCTYPE(None, c_void_p, c_int_p, c_double_p, c_size_t, c_double_p, c_double_p, c_double_p)
 def def_calculate_qxqy(lib):
     """
     Wrap calculate_qxqy from lib if it exists, or return alternate.
     """
     try:
-        lib_calculate_qxqy = calculate_qxqy_prototype(lib.calculate_qxqy)
+        lib_qxqy = lib.calculate_qxqy
         def _calculate_qxqy(self, ends, weights, qx, qy):
-            qx, qy = [numpy.ascontiguousarray(v, 'd') for v in qx, qy]
+            # Make sure we have the right types
+            # DON'T USE CFUNCTYPE PROTOTYPES! they slow you down and lead to really weird errors
+            ends = numpy.ascontiguousarray(ends, 'i')
+            weights, qx, qy = [numpy.ascontiguousarray(v, 'd') for v in weights, qx, qy]
             iq = numpy.empty_like(qx)
-            lib_calculate_qxqy(self.handle,
-                               ends.ctypes.data_as(c_int_p),
-                               weights.ctypes.data_as(c_double_p),
-                               iq.size, iq.ctypes.data_as(c_double_p),
-                               qx.ctypes.data_as(c_double_p),
-                               qy.ctypes.data_as(c_double_p),
-                               )
+            lib_qxqy(self.handle, ends.ctypes.data, weights.ctypes.data,
+                     iq.size, iq.ctypes.data, qx.ctypes.data, qy.ctypes.data)
             if numpy.isnan(iq.flat[0]):
                 logging.warn(self.name + " calculate_qxqy returns NaN")
             return iq
@@ -448,27 +435,19 @@ def def_calculate_qxqy(lib):
     return _calculate_qxqy
 
 
-calculate_qxqyqz_prototype = ctypes.CFUNCTYPE(None, c_void_p, c_int_p, c_double_p, c_size_t, c_double_p, c_double_p, c_double_p,
-                                              c_double_p)
 def def_calculate_qxqyqz(lib):
     """
     Wrap calculate_qxqyqz from lib if it exists, or return alternate.
     """
     try:
-        lib_calculate_qxqyqz = calculate_qxqyqz_prototype(lib.calculate_qxqyqz)
-
+        lib_qxqyqz = lib.calculate_qxqyqz
         def _calculate_qxqyqz(self, ends, weights, qx, qy, qz):
             cparameters, phandles = pyparameters_to_c(parameters)
-            qx, qy, qz = [numpy.ascontiguousarray(v, 'd') for v in qx, qy, qz]
+            ends = numpy.ascontiguousarray(ends, 'i')
+            weights, qx, qy, qz = [numpy.ascontiguousarray(v, 'd') for v in weights, qx, qy, qz]
             iq = numpy.empty_like(qx)
-            lib_calculate_qxqyqz(self.handle,
-                                 ends.ctypes.data_as(c_int_p),
-                                 weights.ctypes.data_as(c_double_p),
-                                 iq.size, iq.ctypes.data_as(c_double_p),
-                                 qx.ctypes.data_as(c_double_p),
-                                 qy.ctypes.data_as(c_double_p),
-                                 qz.ctypes.data_as(c_double_p),
-                                 )
+            lib_qxqyqz(self.handle, ends.ctypes.data, weights.ctypes.data,
+                       iq.size, iq.ctypes.data, qx.ctypes.data, qy.ctypes.data, qz.ctypes.data)
             if numpy.isnan(iq.flat[0]):
                 logging.warn(self.name + " calculate_qxqyqz returns NaN")
             return iq
@@ -478,17 +457,14 @@ def def_calculate_qxqyqz(lib):
     return _calculate_qxqyqz
 
 
-calculate_ER_prototype = ctypes.CFUNCTYPE(c_double, c_void_p, c_void_p)
 def def_calculate_ER(lib):
     """
     Wrap calculate_ER from lib if it exists, or return alternate.
     """
     try:
-        lib_calculate_ER = calculate_ER_prototype(lib.calculate_ER)
-
+        lib_ER = lib.calculate_ER
         def calculate_ER(self, parameters):
-            cparameters, phandles = pyparameters_to_c(parameters)
-            result = lib_calculate_ER(self.handle, cparameters)
+            result = lib_ER(self.handle, cparameters)
             if numpy.isnan(result):
                 logging.warn(self.name + " calculate_ER returns NaN")
             return result
@@ -498,19 +474,14 @@ def def_calculate_ER(lib):
     return calculate_ER
 
 
-calculate_VR_prototype = ctypes.CFUNCTYPE(c_double, c_void_p, c_void_p)
-
-
 def def_calculate_VR(lib):
     """
     Wrap calculate_VR from lib if it exists, or return alternate.
     """
     try:
-        lib_calculate_VR = calculate_VR_prototype(lib.calculate_VR)
-
+        lib_VR = lib.calculate_VR
         def calculate_VR(self, parameters):
-            cparameters, phandles = pyparameters_to_c(parameters)
-            result = lib_calculate_VR(self.handle, cparameters)
+            result = lib_VR(self.handle, cparameters)
             if numpy.isnan(result):
                 logging.warn(self.name + " calculate_VR returns NaN")
             return result

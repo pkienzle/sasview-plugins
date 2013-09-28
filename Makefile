@@ -22,10 +22,11 @@ MODEL_SRC=$(SASVIEW_ROOT)/sansmodels/src/c_models
 #CXX=/opt/local/bin/g++-mp-4.7
 LIBEXT=.so
 
-CCFLAGS=-Wall -O2 -fPIC -fopenmp
-CXXFLAGS=-Wall -O2 -fPIC -fopenmp
+OPENMP=-fopenmp
+CCFLAGS=-Wall -O2 -fPIC $(OPENMP)
+CXXFLAGS=-Wall -O2 -fPIC $(OPENMP)
 INCLUDE=-I. -I$(LIBIGOR_HEADERS) -I$(MODEL_HEADERS)
-LDFLAGS=-shared -fopenmp
+LDFLAGS=-shared $(OPENMP)
 LIBS=
 
 %.o: %.cpp ; $(CXX) $(CXXFLAGS) $(INCLUDE) -c $< -o $@

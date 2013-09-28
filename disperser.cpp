@@ -113,7 +113,7 @@ Disperser::calc_ER() {
  */ 
 void
 Disperser::loop_Iq(void) {
-//std::printf("loopQ\n");
+//std::printf("loopQ enter\n");
   _volume = 1; // in case there is no volume normalization
   _Vnorm = (_model.volume_loops == 0 ? 1. : 0.);
 
@@ -128,6 +128,7 @@ Disperser::loop_Iq(void) {
   const double weight = (_Vnorm == 0. ? 1./_Wnorm : 1./_Vnorm);
   #pragma omp parallel for
   for (int i=0; i < _nq; i++) _iq[i] *= weight;
+//std::printf("loopQ exit\n");
 }
 
 /**
@@ -184,6 +185,7 @@ Disperser::loop_par(unsigned int loop, double weight)
         #pragma omp parallel for
         for (int i=0; i < _nq; i++) {
           const double result = _model.formQxy(dp, _qx[i], _qy[i]);
+          // if (i==0) std::printf("q:%g,%g result:%g weight:%g\n",_qx[i],_qy[i],result,weight);
           // ignore singular results from kernel
           if (std::isfinite(result)) _iq[i] += result * weight;
         }
