@@ -401,8 +401,8 @@ def def_calculate_q(lib):
             q = numpy.ascontiguousarray(q, 'd')
             iq = numpy.empty_like(q)
             #print "send %s %x %x %ld %x %x"%(self.handle,ends.ctypes.data,weights.ctypes.data, iq.size, iq.ctypes.data, q.ctypes.data)
-            lib_q(self.handle, ends.ctypes.data, weights.ctypes.data,
-                  iq.size, iq.ctypes.data, q.ctypes.data)
+            lib_q(self.handle, c_void_p(ends.ctypes.data), c_void_p(weights.ctypes.data),
+                  iq.size, c_void_p(iq.ctypes.data), c_void_p(q.ctypes.data))
             if numpy.isnan(iq.flat[0]):
                 logging.warn(self.name + " calculate_q returns NaN")
             return iq
@@ -424,8 +424,8 @@ def def_calculate_qxqy(lib):
             ends = numpy.ascontiguousarray(ends, 'i')
             weights, qx, qy = [numpy.ascontiguousarray(v, 'd') for v in weights, qx, qy]
             iq = numpy.empty_like(qx)
-            lib_qxqy(self.handle, ends.ctypes.data, weights.ctypes.data,
-                     iq.size, iq.ctypes.data, qx.ctypes.data, qy.ctypes.data)
+            lib_qxqy(self.handle, c_void_p(ends.ctypes.data), c_void_p(weights.ctypes.data),
+                     iq.size, c_void_p(iq.ctypes.data), c_void_p(qx.ctypes.data), c_void_p(qy.ctypes.data))
             if numpy.isnan(iq.flat[0]):
                 logging.warn(self.name + " calculate_qxqy returns NaN")
             return iq

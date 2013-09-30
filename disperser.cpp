@@ -145,7 +145,7 @@ Disperser::loop_Iq(void) {
 void 
 Disperser::loop_par(unsigned int loop, double weight)
 {
-//std::printf("loop %d %g %d\n",loop,weight,_model.looporder.size());
+//std::printf("loop %d %g %ld\n",loop,weight,_model.looporder.size());
   int p = _model.looporder[loop];
   int n = (p == 0 ? _endpts[0] : (_endpts[p] - _endpts[p-1]));
   int offset = (p == 0 ? 0 : _endpts[p-1]);
