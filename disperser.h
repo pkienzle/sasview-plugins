@@ -71,7 +71,7 @@ public:
 class Disperser {
 
 public:
-    Disperser(const DisperserModel &model, int endpts[], Weight pars[])
+    Disperser(const DisperserModel &model, const int endpts[], const Weight pars[])
         : _model(model), _endpts(endpts), _pars(pars) , _dp(model.npars)
         { } 
     void calc_Q(int nq, const double q[], double Iq[]);

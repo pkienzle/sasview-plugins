@@ -252,11 +252,11 @@ CExport void* get_model_info() { return &model_info; }
 //CExport void* create_model(void* data) { return NULL; }
 //CExport void destroy_model(void* ptr) {}
 //void report_error () { std::cout << "unexpected error" << std::endl; }
-CExport void calculate_q(void* ptr, int pindex[], Weight pars[], size_t nq, double iq[], double q[]) {
+CExport void calculate_q(void* ptr, const int pindex[], const Weight pars[], size_t nq, double iq[], const double q[]) {
 //std::printf("recv %p %p %p %ld %p %p\n",ptr,pindex,pars,nq,iq,q);
 	Disperser(model, pindex, pars).calc_Q(nq, q, iq);
 }
-CExport void calculate_qxqy(void* ptr, int pindex[], Weight pars[], size_t nq, double iq[], double qx[], double qy[]) {
+CExport void calculate_qxqy(void* ptr, const int pindex[], const Weight pars[], size_t nq, double iq[], const double qx[], const double qy[]) {
 	Disperser(model, pindex, pars).calc_Qxy(nq, qx, qy, iq);
 }
 CExport void calculate_qxqyqz(void* ptr, int pindex[], Weight pars[], size_t nq, double iq[], double qx[], double qy[], double qz[]) {
@@ -269,3 +269,97 @@ CExport double calculate_VR(void* ptr, int pindex[], Weight pars[]) {
 	return Disperser(model, pindex, pars).calc_VR();
 }
 
+
+#if 1
+#include <python.h>
+#define INVECTOR(obj,buf,len)                                                                           \
+    do { \
+        int err = PyObject_AsReadBuffer(obj, (const void **)(&buf), &len); \
+        if (err < 0) return NULL; \
+        len /= sizeof(*buf); \
+    } while (0)
+
+#define OUTVECTOR(obj,buf,len) \
+    do { \
+        int err = PyObject_AsWriteBuffer(obj, (void **)(&buf), &len); \
+        if (err < 0) return NULL; \
+        len /= sizeof(*buf); \
+    } while (0)
+
+static PyObject * pymodel(PyObject *self, PyObject *args) {
+//std::printf("send %p\n", &model_info);
+    return PyInt_FromSize_t(size_t(&model_info));
+}
+
+static PyObject * pyq(PyObject *self, PyObject *args){
+
+  PyObject *handle_obj, *ends_obj,*weights_obj,*q_obj,*iq_obj;
+  Py_ssize_t nends, nweights, nq, niq;
+  const Weight *weights;
+  const double *q;
+  const int *ends;
+  double *iq;
+
+  if (!PyArg_ParseTuple(args, "OOOOO:calculate_q",
+      &handle_obj, &ends_obj, &weights_obj,
+      &q_obj, &iq_obj))
+    return NULL;
+  INVECTOR(ends_obj,ends,nends);
+  INVECTOR(weights_obj,weights,nweights);
+  INVECTOR(q_obj,q,nq);
+  OUTVECTOR(iq_obj,iq,niq);
+
+  calculate_q(NULL, ends, weights, niq, iq, q);
+  Py_RETURN_NONE;
+}
+
+static PyObject * pyqxy(PyObject *self, PyObject *args)
+{
+  PyObject *handle_obj, *ends_obj,*weights_obj,*qx_obj,*qy_obj,*iq_obj;
+  Py_ssize_t nends, nweights, nqx, nqy, niq;
+  const Weight *weights;
+  const double *qx, *qy;
+  const int *ends;
+  double *iq;
+
+  if (!PyArg_ParseTuple(args, "OOOOOO:calculate_qxqy",
+      &handle_obj, &ends_obj, &weights_obj,
+      &qx_obj, &qy_obj, &iq_obj))
+    return NULL;
+  INVECTOR(ends_obj,ends,nends);
+  INVECTOR(weights_obj,weights,nweights);
+  INVECTOR(qx_obj,qx,nqx);
+  INVECTOR(qy_obj,qy,nqy);
+  OUTVECTOR(iq_obj,iq,niq);
+  calculate_qxqy(NULL, ends, weights, niq, iq, qx, qy);
+  Py_RETURN_NONE;
+}
+
+
+static PyMethodDef methods[] = {
+    {"model_info",
+     pymodel,
+     METH_VARARGS,
+     "get model info as pointer to structure"},
+    {"calculate_q",
+     pyq,
+     METH_VARARGS,
+     "calculate I(Q), with polydispersity as indicated by ends/weights"},
+    {"calculate_qxqy",
+     pyqxy,
+     METH_VARARGS,
+     "calculate I(Qx,Qy), with polydispersity as indicated by ends/weights"},
+    {0}
+} ;
+
+CExport void init_cylinder(void) {
+  Py_InitModule4("_cylinder",
+                 methods,
+                 "Cylinder C Library",
+                 0,
+                 PYTHON_API_VERSION
+                 );
+  //PY_ARRAY_UNIQUE_SYMBOL = NULL;
+  //import_array();
+}
+#endif

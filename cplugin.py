@@ -499,6 +499,54 @@ def get_model_info(lib):
     return model_info
 
 
+def pycplugin(module):
+    ptr = module.model_info()
+    model_info = cmodel_info_to_py(cast(ptr, c_model_p))
+    #print "model_info",model_info.version, model_info.name, model_info.description,model_info.parameter_info
+    class CPlugin(PluginBase):
+        def __init__(self, data=None):
+            PluginBase.__init__(self, model_info)
+            self.handle = self._create_model(data)
+        def _create_model(self, data):
+            return None
+        def _destroy_model(self, handle):
+            pass
+        def _calculate_q(self, ends, weights, q):
+            ends = numpy.ascontiguousarray(ends, 'i')
+            weights = numpy.ascontiguousarray(weights, 'd')
+            q = numpy.ascontiguousarray(q, 'd')
+            iq = numpy.empty_like(q)
+            #print "send %x %x %x %x"%(ends.ctypes.data,weights.ctypes.data,q.ctypes.data, iq.ctypes.data)
+            module.calculate_q(self.handle, ends, weights, q, iq)
+            if numpy.isnan(iq.flat[0]):
+                logging.warn(self.name + " calculate_q returns NaN")
+            return iq
+        def _calculate_qxqy(self, ends, weights, qx, qy):
+            ends = numpy.ascontiguousarray(ends, 'i')
+            weights = numpy.ascontiguousarray(weights, 'd')
+            qx = numpy.ascontiguousarray(qx, 'd')
+            qy = numpy.ascontiguousarray(qy, 'd')
+            iq = numpy.empty_like(qx)
+            module.calculate_qxqy(self.handle, ends, weights, qx, qy, iq)
+            if numpy.isnan(iq.flat[0]):
+                logging.warn(self.name + " calculate_qxqy returns NaN")
+            return iq
+
+        def calculate_Iq(self, *q):
+            ends, pars = self._get_param_vector()
+            if len(q) == 1:
+                iq = self._calculate_q(ends, pars, *q)
+            elif len(q) == 2:
+                iq = self._calculate_qxqy(ends, pars, *q)
+            elif len(q) == 3:
+                iq = self._calculate_qxqyqz(ends, pars, *q)
+            else:
+                raise TypeError("calculate_Iq expects q or qx,qy or qx,qy,qz")
+            return iq
+    CPlugin.__name__ = model_info.name
+    CPlugin.__doc__ = model_info.description
+    return CPlugin
+
 def cplugin(path):
     """
     Generate a SAS model from a dll.

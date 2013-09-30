@@ -59,8 +59,8 @@ struct Weight {
 CExport void* get_model_info();
 CExport void* create_model(void* data);
 CExport void destroy_model(void* ptr);
-CExport void calculate_q(void* ptr, int pindex[], Weight p[], size_t nq, double iq[], double q[]);
-CExport void calculate_qxqy(void* ptr, int pindex[], Weight p[], size_t nq, double iq[], double qx[], double qy[]);
+CExport void calculate_q(void* ptr, const int pindex[], const Weight p[], size_t nq, double iq[], const double q[]);
+CExport void calculate_qxqy(void* ptr, const int pindex[], const Weight p[], size_t nq, double iq[], const double qx[], const double qy[]);
 CExport void calculate_qxqyqz(void* ptr, int pindex[], Weight p[], size_t nq, double iq[], double qx[], double qy[], double qz[]);
 CExport double calculate_ER(void* ptr, int pindex[], Weight p[]);
 CExport double calculate_VR(void* ptr, int pindex[], Weight p[]);
