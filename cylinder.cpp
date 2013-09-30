@@ -352,8 +352,8 @@ static PyMethodDef methods[] = {
     {0}
 } ;
 
-CExport void init_cylinder(void) {
-  Py_InitModule4("_cylinder",
+CExport void initcylinder(void) {
+  Py_InitModule4("cylinder",
                  methods,
                  "Cylinder C Library",
                  0,

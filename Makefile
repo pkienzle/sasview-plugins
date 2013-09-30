@@ -22,14 +22,17 @@ MODEL_SRC=$(SASVIEW_ROOT)/sansmodels/src/c_models
 #CXX=/opt/local/bin/g++-mp-4.7
 LIBEXT=.so
 
+PYINC=-I/usr/include/python2.7
+PYLIB=-L/usr/lib -lpython2.7
 OPENMP=-fopenmp
-CCFLAGS=-Wall -O2 -fPIC $(OPENMP)
-CXXFLAGS=-Wall -O2 -fPIC $(OPENMP)
+CFLAGS=-Wall -O2 -fPIC $(OPENMP)
+CXXFLAGS=-Wall -O2 -fPIC $(OPENMP) $(PYINC)
 INCLUDE=-I. -I$(LIBIGOR_HEADERS) -I$(MODEL_HEADERS)
 LDFLAGS=-shared $(OPENMP)
-LIBS=
+LIBS=$(PYLIB)
 
 %.o: %.cpp ; $(CXX) $(CXXFLAGS) $(INCLUDE) -c $< -o $@
+%.o: %.c ; $(CC) $(CFLAGS) $(INCLUDE) -c $< -o $@
 %.o: $(LIBIGOR_SRC)/%.c ; $(CC) $(CCFLAGS) $(INCLUDE) -c $< -o $@
 %.o: $(MODEL_SRC)/%.c ; $(CC) $(CCFLAGS) $(INCLUDE) -c $< -o $@
 %.so: %.o ; $(CXX) $(LDFLAGS) $^ $(LIBS) -o $@

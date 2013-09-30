@@ -81,8 +81,9 @@ def cyl_new():
 def cyl_py():
     import cplugin
     from cplugin import GaussianDispersion
-    import _cylinder
-    Model = cplugin.pycplugin(_cylinder)
+    import sys; sys.path.append('.')
+    import cylinder
+    Model = cplugin.pycplugin(cylinder)
     run("py", Model, cyl_pars, GaussianDispersion)
 
 cyl_new()
