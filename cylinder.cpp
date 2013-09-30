@@ -271,7 +271,7 @@ CExport double calculate_VR(void* ptr, int pindex[], Weight pars[]) {
 
 
 #if 1
-#include <python.h>
+#include <Python.h>
 #define INVECTOR(obj,buf,len)                                                                           \
     do { \
         int err = PyObject_AsReadBuffer(obj, (const void **)(&buf), &len); \
@@ -308,7 +308,6 @@ static PyObject * pyq(PyObject *self, PyObject *args){
   INVECTOR(weights_obj,weights,nweights);
   INVECTOR(q_obj,q,nq);
   OUTVECTOR(iq_obj,iq,niq);
-
   calculate_q(NULL, ends, weights, niq, iq, q);
   Py_RETURN_NONE;
 }

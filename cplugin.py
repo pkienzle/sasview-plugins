@@ -223,9 +223,10 @@ class PluginBase(BaseComponent):
         """
         if isinstance(x, list) and len(x) == 2:
             q, phi = x
-            return self.calculate_Iq([q * math.cos(phi)], [q * math.sin(phi)])[0]
+            return self.calculate_Iq(numpy.array([q * math.cos(phi)], 'd'), 
+                                     numpy.array([q * math.sin(phi)], 'd'))[0]
         else:
-            return self.calculate_Iq([float(x)])[0]
+            return self.calculate_Iq(numpy.array([float(x)],'d'))[0]
 
     def runXY(self, x):
         """
