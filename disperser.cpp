@@ -7,7 +7,11 @@
 #include <ModelInfo.h>
 #include <disperser.h>
 
-#if 0
+#ifdef _MSC_VER
+# define NEED_ISFINITE
+#endif
+
+#ifdef NEED_ISFINITE
 #include <float.h>
 namespace std {
 inline bool isfinite(const double c) { return _finite(c) != 0; }
@@ -141,7 +145,7 @@ Disperser::loop_Iq(void) {
 void 
 Disperser::loop_par(unsigned int loop, double weight)
 {
-//std::printf("loop %d %g\n",loop,weight);
+//std::printf("loop %d %g %d\n",loop,weight,_model.looporder.size());
   int p = _model.looporder[loop];
   int n = (p == 0 ? _endpts[0] : (_endpts[p] - _endpts[p-1]));
   int offset = (p == 0 ? 0 : _endpts[p-1]);
@@ -166,7 +170,7 @@ Disperser::loop_par(unsigned int loop, double weight)
     } 
     // Go the the next loop level; when computing Iq, ignore
     // orientation and magnetism parameters.
-    if (loop < _model.npars 
+    if (loop < _model.npars-1
         || (_target == IQ && loop < _model.orientation_loops)) {
       loop_par(loop+1, wi);
     } else {

@@ -253,6 +253,7 @@ CExport void* get_model_info() { return &model_info; }
 //CExport void destroy_model(void* ptr) {}
 //void report_error () { std::cout << "unexpected error" << std::endl; }
 CExport void calculate_q(void* ptr, int pindex[], Weight pars[], size_t nq, double iq[], double q[]) {
+//std::printf("recv %p %p %p %ld %p %p\n",ptr,pindex,pars,nq,iq,q);
 	Disperser(model, pindex, pars).calc_Q(nq, q, iq);
 }
 CExport void calculate_qxqy(void* ptr, int pindex[], Weight pars[], size_t nq, double iq[], double qx[], double qy[]) {

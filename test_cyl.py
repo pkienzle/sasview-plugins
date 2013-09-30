@@ -40,7 +40,7 @@ def _run_two(model, q, q1, q2):
 
 def run(name, Model, pars, Dispersion):
 
-    disp = {'npts':2, 'width':0.1666666667, 'nsigmas':2}
+    disp = {'npts':15, 'width':0.1666666667, 'nsigmas':2}
     q1,q2 = 0.1, 0.2
     q = numpy.linspace(q1,q2,128)    #print "q",q.shape,q.dtype
     model = Model()
@@ -78,5 +78,5 @@ def cyl_new():
     Model = cplugin.cplugin('cylinder.so')
     run("new", Model, cyl_pars, GaussianDispersion)
 
-cyl_old()
 cyl_new()
+cyl_old()

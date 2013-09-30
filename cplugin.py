@@ -400,6 +400,7 @@ def def_calculate_q(lib):
             weights = numpy.ascontiguousarray(weights, 'd')
             q = numpy.ascontiguousarray(q, 'd')
             iq = numpy.empty_like(q)
+            #print "send %s %x %x %ld %x %x"%(self.handle,ends.ctypes.data,weights.ctypes.data, iq.size, iq.ctypes.data, q.ctypes.data)
             lib_q(self.handle, ends.ctypes.data, weights.ctypes.data,
                   iq.size, iq.ctypes.data, q.ctypes.data)
             if numpy.isnan(iq.flat[0]):
