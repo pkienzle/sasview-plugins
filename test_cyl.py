@@ -66,7 +66,7 @@ def run(name, Model, pars, Dispersion):
     _run_two(model, q, q1, q2)
 
 
-cyl_pars = {'scale':1.0, 'radius':60.0, 'sldCyl': 2.0, 'sldSolv': 1.0, 'background': 0.0}
+cyl_pars = {'scale':1.0, 'radius':60.0, 'sldCyl': 2.0e-6, 'sldSolv': 1.0e-6, 'background': 0.0}
 def cyl_old():
     from sans.models.CylinderModel import CylinderModel as Model
     from sans.models.dispersion_models import GaussianDispersion
